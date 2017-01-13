@@ -63,7 +63,7 @@ void encrypt(const char * content, string & encrystr)
     RSA_free(p_rsa);
     fclose(file);
 
-	//md5 it
+	//base64 encode it
 	char * res = base64Encode((char *) p_en, rsa_len+1, true);
 	
 	//encrystr = string((char *)p_en);
