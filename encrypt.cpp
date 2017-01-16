@@ -29,8 +29,8 @@ void encrypt(const char * content, string & encrystr)
  
     if((p_rsa = PEM_read_RSA_PUBKEY(file, NULL,NULL,NULL))==NULL)
 	{
-    //if((p_rsa=PEM_read_RSAPublicKey(file,NULL,NULL,NULL))==NULL){  换成这句死活通不过，无论是否将公钥分离源文件
-         ERR_print_errors_fp(stdout);
+        //if((p_rsa=PEM_read_RSAPublicKey(file,NULL,NULL,NULL))==NULL){  换成这句死活通不过，无论是否将公钥分离源文件
+        ERR_print_errors_fp(stdout);
         return ;
     }
   
@@ -51,12 +51,10 @@ void encrypt(const char * content, string & encrystr)
 	memcpy(pt+1, content, contlen);
 
 	int ret = RSA_public_encrypt(rsa_len,pt,(unsigned char*)p_en,p_rsa,RSA_NO_PADDING);
-	//int ret = RSA_public_encrypt(rsa_len,pt,(unsigned char*)p_en,p_rsa,RSA_PKCS1_PADDING);
 
     if(ret < 0)
 	{
         ERR_print_errors_fp(stdout);
-		//cout<<"error happen. ret="<<ret<<endl;
         return ;
     }
 
@@ -65,10 +63,8 @@ void encrypt(const char * content, string & encrystr)
 
 	//base64 encode it
 	char * res = base64Encode((char *) p_en, rsa_len+1, true);
-	
-	//encrystr = string((char *)p_en);
 	encrystr = string(res);
-
+	
 	delete[] pt;
 }
 
@@ -129,8 +125,6 @@ void my_decrypt(const char *str, string & decrstr)
         return ;
     }
 
-	//cout<<"encrypt:"<<str<<endl;	
-
 	//产生RSA对象指针，用私钥内容初始化该RSA对象
     if((p_rsa = PEM_read_RSAPrivateKey(file, NULL,NULL,NULL))==NULL)
 	{
@@ -144,9 +138,7 @@ void my_decrypt(const char *str, string & decrstr)
     memset(p_de,0,rsa_len+1);
 	
 	char * de_base = base64Decode((char *)str, strlen(str), true);	
-
-	//cout<<"debase64"<<de_base<<endl;
-
+    
     if(RSA_private_decrypt(rsa_len, (unsigned char *)de_base, (unsigned char*)p_de, p_rsa, RSA_NO_PADDING)<0)
 	{
         ERR_print_errors_fp(stdout);
@@ -157,7 +149,7 @@ void my_decrypt(const char *str, string & decrstr)
     fclose(file);
 	
 	decrstr = string((char *)p_de+1);
- }
+}
 
 int main(int argc, char **argv)
 {
@@ -166,33 +158,55 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	
-	string tt;
-
-	
+	char ch = 0;
+	int method;
 	string rawval;
 
-	for(int i = 1; i < argc; ++i)
+	while((ch = getopt(argc, argv, "m:c:")) != -1)
+	{  
+        switch(ch)
+		{  
+        	case 'm':  
+				method = atoi(optarg);
+                break;  
+        	case 'c':  
+				rawval = optarg;										
+               break;  
+			default :
+				cout<<"can not find"<<endl;
+        }  
+	}  
+
+	if (0 == method || rawval.empty())
 	{
-		rawval += argv[i];
-		rawval += string(" ");
+		cout<<"Usage:"<<argv[0]<<" [-m 1:encrypt 2:decrypt] [-c content]"<<endl;
+		return 1;
 	}
 
-	cout<<"content is:"<<rawval<<endl;
-	encrypt(rawval.c_str(), tt);
+    for(int  index = optind; index < argc; index++)  
+    {  
+		if (2 == method)
+		{
+			rawval += string("\n") + argv[index];
+		}
+		else if (1 == method)
+		{
+			rawval += string(" ") + argv[index];		
+		}
+    }  
 	
-	//encrypt("just for test ", tt);
-	if (tt.empty())
+	string result;
+	if (1 == method)
 	{
-		return 0;
+		encrypt(rawval.c_str(), result);
 	}
-
-	//cout<<tt<<endl;
-	cout<<"over"<<endl;
-
-	string dd;
-	my_decrypt(tt.c_str(), dd);
-
-	cout<<"after decrypt:"<<dd<<endl;
+	else if (2 == method)
+	{
+		my_decrypt(rawval.c_str(), result);
+	}
+	
+	cout<<"result is:"<<result<<endl;
+	
 	return 0;
 }
 
